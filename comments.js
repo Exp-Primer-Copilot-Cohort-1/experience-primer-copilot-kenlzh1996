@@ -1,80 +1,32 @@
-// Create Web Server using Express
-// Create a RESTful API for comments
-// http://localhost:3000/api/comments
+// Create Web Server with Express
+// npm install express --save
+// npm install body-parser --save
+// npm install mongoose --save
+// npm install nodemon --save-dev
+// npm install cors --save
 
 const express = require('express');
-const Joi = require('joi');
-const router = express.Router();
+const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const cors = require('cors');
 
-const comments = [
-    { id: 1, name: 'John Doe', comment: 'Comment 1' },
-    { id: 2, name: 'Jane Doe', comment: 'Comment 2' },
-    { id: 3, name: 'Jill Doe', comment: 'Comment 3' },
-    { id: 4, name: 'Jack Doe', comment: 'Comment 4' },
-];
+const commentsRoutes = require('./routes/comments');
 
-// Get All Comments
-router.get('/', (req, res) => {
-    res.send(comments);
-});
+const app = express();
 
-// Get Comment by ID
-router.get('/:id', (req, res) => {
-    const comment = comments.find(c => c.id === parseInt(req.params.id));
-    if (!comment) {
-        res.status(404).send('The comment with the given ID was not found.');
-        return;
-    }
-    res.send(comment);
-});
+app.use(bodyParser.json());
+app.use(cors());
 
-// Create New Comment
-router.post('/', (req, res) => {
-    const { error } = validateComment(req.body);
-    if (error) {
-        res.status(400).send(error.details[0].message);
-        return;
-    }
+// Connect to MongoDB database
+mongoose.connect('mongodb://localhost:27017/comments', { useNewUrlParser: true })
+    .then(() => {
+        console.log('Connected to database');
+    })
+    .catch(() => {
+        console.log('Connection failed');
+    });
 
-    const comment = {
-        id: comments.length + 1,
-        name: req.body.name,
-        comment: req.body.comment
-    };
-    comments.push(comment);
-    res.send(comment);
-});
+// Set up routes
+app.use('/api/comments', commentsRoutes);
 
-// Update Comment by ID
-router.put('/:id', (req, res) => {
-    const comment = comments.find(c => c.id === parseInt(req.params.id));
-    if (!comment) {
-        res.status(404).send('The comment with the given ID was not found.');
-        return;
-    }
-
-    const { error } = validateComment(req.body);
-    if (error) {
-        res.status(400).send(error.details[0].message);
-        return;
-    }
-
-    comment.name = req.body.name;
-    comment.comment = req.body.comment;
-    res.send(comment);
-});
-
-// Delete Comment by ID
-router.delete('/:id', (req, res) => {
-    const comment = comments.find(c => c.id === parseInt(req.params.id));
-    if (!comment) {
-        res.status(404).send('The comment with the given ID was not found.');
-        return;
-    }
-
-    const index = comments.indexOf(comment);
-    comments.splice(index, 1);
-
-    res.send(comment);
-});
-
+module.exports = app;
