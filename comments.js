@@ -1,24 +1,56 @@
 // Create Web Server
+// Create Comment
+// Read Comment
+// Update Comment
+// Delete Comment
 
-// Import Express
+// Import express
 const express = require('express');
-const app = express();
-const port = 3000;
+// Import router
+const router = express.Router();
+// Import comment model
+const Comment = require('../models/Comment');
+// Import post model
+const Post = require('../models/Post');
+// Import user model
+const User = require('../models/User');
+// Import passport
+const passport = require('passport');
+// Import validation
+const validateComment = require('../validation/comment');
 
-// Import Body Parser
-const bodyParser = require('body-parser');
-app.use(bodyParser.urlencoded({ extended: true }));
+// @route   POST /api/comments/create
+// @desc    Create comment
+// @access  Private
+router.post(
+  '/create',
+  passport.authenticate('jwt', { session: false }),
+  async (req, res) => {
+    // Validate comment
+    const { errors, isValid } = validateComment(req.body);
 
-// Import Mongoose
-const mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost:27017/comments', { useNewUrlParser: true });
+    // Check validation
+    if (!isValid) {
+      return res.status(400).json(errors);
+    }
 
-// Import Model
-const Comment = require('./models/comment');
+    try {
+      // Find post by id
+      const post = await Post.findById(req.body.postId);
 
-// Import Method Override
-const methodOverride = require('method-override');
-app.use(methodOverride('_method'));
+      // Check if post exists
+      if (!post) {
+        return res.status(404).json({ post: 'Post not found' });
+      }
 
-// Import Moment
-const moment = require('moment');
+      // Find user by id
+      const user = await User.findById(req.user._id);
+
+      // Check if user exists
+      if (!user) {
+        return res.status(404).json({ user: 'User not found' });
+      }
+
+      // Create comment object
+      const comment = new Comment({
+        text: req.body.text,
