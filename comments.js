@@ -1,56 +1,75 @@
-// Create Web Server
-// Create Comment
-// Read Comment
-// Update Comment
-// Delete Comment
+// Create Web Server using Express
+// Create a RESTful API for comments
+// http://localhost:3000/api/comments
 
-// Import express
 const express = require('express');
-// Import router
+const Joi = require('joi');
 const router = express.Router();
-// Import comment model
-const Comment = require('../models/Comment');
-// Import post model
-const Post = require('../models/Post');
-// Import user model
-const User = require('../models/User');
-// Import passport
-const passport = require('passport');
-// Import validation
-const validateComment = require('../validation/comment');
 
-// @route   POST /api/comments/create
-// @desc    Create comment
-// @access  Private
-router.post(
-  '/create',
-  passport.authenticate('jwt', { session: false }),
-  async (req, res) => {
-    // Validate comment
-    const { errors, isValid } = validateComment(req.body);
+const comments = [
+    { id: 1, name: 'John Doe', comment: 'Comment 1' },
+    { id: 2, name: 'Jane Doe', comment: 'Comment 2' },
+    { id: 3, name: 'Jill Doe', comment: 'Comment 3' },
+    { id: 4, name: 'Jack Doe', comment: 'Comment 4' },
+];
 
-    // Check validation
-    if (!isValid) {
-      return res.status(400).json(errors);
+// Get All Comments
+router.get('/', (req, res) => {
+    res.send(comments);
+});
+
+// Get Comment by ID
+router.get('/:id', (req, res) => {
+    const comment = comments.find(c => c.id === parseInt(req.params.id));
+    if (!comment) {
+        res.status(404).send('The comment with the given ID was not found.');
+        return;
+    }
+    res.send(comment);
+});
+
+// Create New Comment
+router.post('/', (req, res) => {
+    const { error } = validateComment(req.body);
+    if (error) {
+        res.status(400).send(error.details[0].message);
+        return;
     }
 
-    try {
-      // Find post by id
-      const post = await Post.findById(req.body.postId);
+    const comment = {
+        id: comments.length + 1,
+        name: req.body.name,
+        comment: req.body.comment
+    };
+    comments.push(comment);
+    res.send(comment);
+});
 
-      // Check if post exists
-      if (!post) {
-        return res.status(404).json({ post: 'Post not found' });
-      }
+// Update Comment by ID
+router.put('/:id', (req, res) => {
+    const comment = comments.find(c => c.id === parseInt(req.params.id));
+    if (!comment) {
+        res.status(404).send('The comment with the given ID was not found.');
+        return;
+    }
 
-      // Find user by id
-      const user = await User.findById(req.user._id);
+    const { error } = validateComment(req.body);
+    if (error) {
+        res.status(400).send(error.details[0].message);
+        return;
+    }
 
-      // Check if user exists
-      if (!user) {
-        return res.status(404).json({ user: 'User not found' });
-      }
+    comment.name = req.body.name;
+    comment.comment = req.body.comment;
+    res.send(comment);
+});
 
-      // Create comment object
-      const comment = new Comment({
-        text: req.body.text,
+// Delete Comment by ID
+router.delete('/:id', (req, res) => {
+    const comment = comments.find(c => c.id === parseInt(req.params.id));
+    if (!comment) {
+        res.status(404).send('The comment with the given ID was not found.');
+        return;
+    }
+});
+
