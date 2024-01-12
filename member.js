@@ -1,5 +1,3 @@
-function skillsmember() {
-    return {
-        bindToControler: True
-    }
+function skillsMember() {
+    console.log('I am a member of the team')
 }
