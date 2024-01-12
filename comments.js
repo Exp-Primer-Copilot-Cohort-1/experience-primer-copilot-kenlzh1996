@@ -1,32 +1,75 @@
-// Create Web Server with Express
-// npm install express --save
-// npm install body-parser --save
-// npm install mongoose --save
-// npm install nodemon --save-dev
-// npm install cors --save
+// Create web server
+const express = require('express')
+const bodyParser = require('body-parser')
+const axios = require('axios')
 
-const express = require('express');
-const bodyParser = require('body-parser');
-const mongoose = require('mongoose');
-const cors = require('cors');
+const app = express()
+app.use(bodyParser.json())
 
-const commentsRoutes = require('./routes/comments');
+// Create event handler for comments
+const handleEvent = async (type, data) => {
+    if (type === 'CommentCreated') {
+        // destructure data
+        const { id, content, postId, status } = data
 
-const app = express();
+        // Add comment to comments object
+        comments[postId].push({ id, content, status })
 
-app.use(bodyParser.json());
-app.use(cors());
+        // Emit event to event bus
+        await axios.post('http://localhost:4005/events', {
+            type: 'CommentModerated',
+            data: {
+                id,
+                postId,
+                status,
+                content
+            }
+        })
+    }
 
-// Connect to MongoDB database
-mongoose.connect('mongodb://localhost:27017/comments', { useNewUrlParser: true })
-    .then(() => {
-        console.log('Connected to database');
-    })
-    .catch(() => {
-        console.log('Connection failed');
-    });
+    if (type === 'CommentUpdated') {
+        // destructure data
+        const { id, content, postId, status } = data
 
-// Set up routes
-app.use('/api/comments', commentsRoutes);
+        // Find comment to update
+        const comment = comments[postId].find(comment => {
+            return comment.id === id
+        })
 
-module.exports = app;
+        // Update comment
+        comment.status = status
+        comment.content = content
+
+        // Emit event to event bus
+        await axios.post('http://localhost:4005/events', {
+            type: 'CommentUpdated',
+            data: {
+                id,
+                postId,
+                status,
+                content
+            }
+        })
+    }
+}
+
+// Create comments object
+const comments = {}
+
+// Create route handler for /posts/:id/comments
+app.get('/posts/:id/comments', (req, res) => {
+    // Get comments for specific post
+    res.send(comments[req.params.id] || [])
+})
+
+// Create route handler for /posts/:id/comments
+app.post('/events', async (req, res) => {
+    // Get event type and data from request body
+    const { type, data } = req.body
+
+    // Handle event
+    await handleEvent(type, data)
+
+    // Send response
+    res.send({})
+})
