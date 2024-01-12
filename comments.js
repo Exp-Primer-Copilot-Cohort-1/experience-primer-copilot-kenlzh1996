@@ -71,5 +71,10 @@ router.delete('/:id', (req, res) => {
         res.status(404).send('The comment with the given ID was not found.');
         return;
     }
+
+    const index = comments.indexOf(comment);
+    comments.splice(index, 1);
+
+    res.send(comment);
 });
 
